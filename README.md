@@ -6,37 +6,37 @@ go语言可控制协程主要是解决分布式系统中异步请求Callback模�
 
 1. 创建协程
 
-```
+```golang
 co := coroutine.NewCoroutine()
 ```
 
 2. 协程运行
 
-```
+```golang
 err := co.Run(func() error)
 ```
 
 3. 阻塞协程,恢复主线程
 
-```
+```golang
 co.Yield()
 ```
 
 4. 阻塞主线程(),恢复协程
 
-```
+```golang
 co.Resume()
 ```
 
 5. 恢复主线程,释放协程
 
-```
+```golang
 co.Done()
 ```
 
 ## 代码示例
 
-```
+```golang
 package main
 
 import (
@@ -77,7 +77,7 @@ func main() {
 ```
 
 ## 相关设置
-```
+```golang
 coroutine.SetResumeWaitSecond(d time.Duration)  设置全局协程Resume后主线程最大等待时间
 co.SetResumeWaitSecond(d time.Duration)  设置某个协程Resume后主线程最大等待时间
 ```
