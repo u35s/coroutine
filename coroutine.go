@@ -1,10 +1,10 @@
-package coroutine
+package context
 
 import "time"
 
-var resumeWaitDuration time.Duration = 4 * 1e9
+var waitDuration time.Duration = 4 * 1e9
 
-func SetResumeWaitSecond(d time.Duration) { resumeWaitDuration = d }
+func SetWaitSecond(d time.Duration) { waitDuration = d }
 
 func NewCoroutine() *Coroutine {
 	return &Coroutine{
@@ -12,28 +12,33 @@ func NewCoroutine() *Coroutine {
 		mResume: make(chan struct{}),
 		mDone:   make(chan struct{}),
 
-		mRunDone:            make(chan error),
-		mResumeWaitDuration: resumeWaitDuration,
+		mRunDone:      make(chan error),
+		mWaitDuration: waitDuration,
 	}
 }
 
 type Coroutine struct {
-	mYield              chan struct{}
-	mResume             chan struct{}
-	mDone               chan struct{}
-	mRunDone            chan error
-	mResumeWaitDuration time.Duration
+	mYield        chan struct{}
+	mResume       chan struct{}
+	mDone         chan struct{}
+	mRunDone      chan error
+	mWaitDuration time.Duration
 }
 
-func (co *Coroutine) SetResumeWaitDuration(d time.Duration) {
-	co.mResumeWaitDuration = d
+func (co *Coroutine) SetWaitDuration(d time.Duration) {
+	co.mWaitDuration = d
 }
 
 func (co *Coroutine) Run(exe func() error) error {
 	go func() {
 		err := exe()
 		if co.mRunDone != nil {
-			co.mRunDone <- err
+			ticker := time.NewTicker(co.mWaitDuration)
+			defer ticker.Stop()
+			select {
+			case co.mRunDone <- err:
+			case <-ticker.C:
+			}
 		}
 	}()
 	var err error
@@ -56,9 +61,11 @@ func (co *Coroutine) Yield() {
 
 func (co *Coroutine) Resume() {
 	co.mResume <- struct{}{}
+	ticker := time.NewTicker(co.mWaitDuration)
+	defer ticker.Stop()
 	select {
 	case <-co.mDone:
-	case <-time.Tick(co.mResumeWaitDuration):
+	case <-ticker.C:
 	}
 }
 
