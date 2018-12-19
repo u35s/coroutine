@@ -32,11 +32,12 @@ func (co *Coroutine) SetWaitDuration(d time.Duration) {
 func (co *Coroutine) Run(exe func() error) error {
 	go func() {
 		err := exe()
-		if co.mRunDone != nil {
-			select {
-			case co.mRunDone <- err:
-			default: // Yield 之后mRunDone <- err将会阻塞
-			}
+
+		ticker := time.NewTicker(co.mWaitDuration)
+		defer ticker.Stop()
+		select {
+		case co.mRunDone <- err:
+		case <-ticker.C: // Yield 之后mRunDone <- err将会阻塞 如果用default,下面的阻塞代码可能还没执行
 		}
 	}()
 	var err error

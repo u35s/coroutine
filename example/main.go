@@ -3,35 +3,47 @@ package main
 import (
 	"coroutine"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
+	"runtime"
+	"strings"
+	"time"
 )
 
 func main() {
+	fmt.Printf("main id %v\n", Goid())
+	go func() {
+		profiler("8888")
+	}()
+	var num uint64 = 0
+	go func() {
+		for {
+			select {
+			case <-time.Tick(5 * 1e9):
+				fmt.Printf("num %v, 5s\n", num)
+			}
+		}
+	}()
 	for {
 		co1 := coroutine.NewCoroutine()
 		co1.Run(func() error {
-			fmt.Println("handle client req 1")
-			fmt.Println("send rpc 1")
-			co1.Yield() // 协程等待rpc 1返回
-			fmt.Println("handle rpc 1 result")
-			fmt.Println("handle client req 1 complete")
-			co1.Done()
 			return nil
 		})
 
-		co2 := coroutine.NewCoroutine()
-		co2.Run(func() error {
-			fmt.Println("handle client req 2")
-			return nil
-		})
-
-		co3 := coroutine.NewCoroutine()
-		co3.Run(func() error {
-			fmt.Println("recived rpc 1 result")
-			co1.Resume()
-			fmt.Println("handle rpc 1 result complete")
-			return nil
-		})
-		fmt.Println("收到STOP")
-		break
+		num++
+		if num%10000 == 0 {
+			fmt.Printf("num %v, id\n", num)
+		}
 	}
+}
+
+func Goid() string {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
+	return idField
+}
+
+func profiler(port string) {
+	println(http.ListenAndServe(":"+port, nil))
 }
