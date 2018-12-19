@@ -64,7 +64,8 @@ func (co *Coroutine) Resume() {
 	select {
 	case <-co.mDone:
 	case <-ticker.C: // 当coroutine长时间不调用Done,tick.C返回导致程序并发,把tick设置的大一点
-		// 当Resume后并发不会有问题可以去掉此处的select阻塞
+		// 当Resume后并发不会有问题可以去掉此处的select阻塞,一般不建议这么做
+		// 此处tick主要防止忘记调用Done,阻塞主线程
 	}
 }
 
